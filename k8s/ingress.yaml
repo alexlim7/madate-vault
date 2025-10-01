@@ -1,0 +1,45 @@
+# Kubernetes Ingress
+# ===================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mandate-vault
+  namespace: mandate-vault
+  annotations:
+    # GCP annotations
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "mandate-vault-ip"
+    networking.gke.io/managed-certificates: "mandate-vault-cert"
+    
+    # SSL redirect
+    kubernetes.io/ingress.allow-http: "false"
+    
+    # AWS ALB annotations (if using AWS)
+    # kubernetes.io/ingress.class: "alb"
+    # alb.ingress.kubernetes.io/scheme: internet-facing
+    # alb.ingress.kubernetes.io/target-type: ip
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/xxx
+spec:
+  rules:
+  - host: api.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mandate-vault
+            port:
+              number: 80
+---
+# Managed Certificate (GCP)
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: mandate-vault-cert
+  namespace: mandate-vault
+spec:
+  domains:
+    - api.yourdomain.com
+

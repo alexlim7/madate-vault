@@ -1,0 +1,11 @@
+Contact: mailto:security@mandatevault.com
+Expires: 2026-12-31T23:59:59.000Z
+Encryption: https://mandatevault.com/pgp-key.txt
+Preferred-Languages: en
+Canonical: https://mandatevault.com/.well-known/security.txt
+Policy: https://mandatevault.com/security-policy
+Acknowledgments: https://mandatevault.com/security-acknowledgments
+
+# Security Contact Information
+# Report security vulnerabilities to security@mandatevault.com
+# We appreciate responsible disclosure and will respond within 24 hours

@@ -1,0 +1,82 @@
+# Docker ignore file
+# Excludes unnecessary files from Docker build context
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development files
+*.db
+*.log
+test*.db
+.env
+.env.*
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Databases
+*.sqlite
+*.sqlite3
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Development scripts
+scripts/backup_database.sh
+scripts/restore_database.sh
+demo_*.py

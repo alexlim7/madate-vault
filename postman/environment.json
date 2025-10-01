@@ -1,0 +1,61 @@
+{
+  "id": "mandate-vault-env",
+  "name": "Mandate Vault Environment",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "tenantId",
+      "value": "550e8400-e29b-41d4-a716-446655440000",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "mandateId",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "webhookId",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "validJWT",
+      "value": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3Qta2V5LTEifQ.eyJpc3MiOiJkaWQ6ZXhhbXBsZTppc3N1ZXIxMjMiLCJzdWIiOiJkaWQ6ZXhhbXBsZTpzdWJqZWN0NDU2IiwiaWF0IjoxNzA0MDY3MjAwLCJleHAiOjE3MDQwNzA4MDAsInNjb3BlIjoicGF5bWVudCIsImFtb3VudF9saW1pdCI6IjEwMC4wMCJ9.test-signature",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "expiredJWT",
+      "value": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3Qta2V5LTEifQ.eyJpc3MiOiJkaWQ6ZXhhbXBsZTppc3N1ZXIxMjMiLCJzdWIiOiJkaWQ6ZXhhbXBsZTpzdWJqZWN0NDU2IiwiaWF0IjoxNzA0MDY3MjAwLCJleHAiOjE3MDQwNjcyMDAsInNjb3BlIjoicGF5bWVudCIsImFtb3VudF9saW1pdCI6IjEwMC4wMCJ9.expired-signature",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "tamperedJWT",
+      "value": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3Qta2V5LTEifQ.eyJpc3MiOiJkaWQ6ZXhhbXBsZTppc3N1ZXIxMjMiLCJzdWIiOiJkaWQ6ZXhhbXBsZTpzdWJqZWN0NDU2IiwiaWF0IjoxNzA0MDY3MjAwLCJleHAiOjE3MDQwNzA4MDAsInNjb3BlIjoicGF5bWVudCIsImFtb3VudF9saW1pdCI6IjEwMC4wMCJ9.tampered-signature",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "webhookUrl",
+      "value": "https://webhook.site/unique-id",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "webhookSecret",
+      "value": "test-webhook-secret",
+      "enabled": true,
+      "type": "default"
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

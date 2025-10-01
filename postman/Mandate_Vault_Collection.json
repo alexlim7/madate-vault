@@ -1,0 +1,754 @@
+{
+  "info": {
+    "name": "Mandate Vault - Full Lifecycle Tests",
+    "description": "Comprehensive collection to test mandate lifecycle: ingest, verify, fetch, export, webhook delivery",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "{{baseUrl}}",
+      "type": "string"
+    },
+    {
+      "key": "tenantId",
+      "value": "550e8400-e29b-41d4-a716-446655440000",
+      "type": "string"
+    },
+    {
+      "key": "mandateId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "webhookId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "validJWT",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Setup",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/healthz",
+              "host": ["{{baseUrl}}"],
+              "path": ["healthz"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Health check returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains status', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Readiness Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/readyz",
+              "host": ["{{baseUrl}}"],
+              "path": ["readyz"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Readiness check returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains ready status', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('ready');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mandate Lifecycle",
+      "item": [
+        {
+          "name": "1. Create Valid Mandate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vc_jwt\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InRlc3Qta2V5LTEifQ.eyJpc3MiOiJkaWQ6ZXhhbXBsZTppc3N1ZXIxMjMiLCJzdWIiOiJkaWQ6ZXhhbXBsZTpzdWJqZWN0NDU2IiwiaWF0IjoxNzA0MDY3MjAwLCJleHAiOjE3MDQwNzA4MDAsInNjb3BlIjoicGF5bWVudCIsImFtb3VudF9saW1pdCI6IjEwMC4wMCJ9.test-signature\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"retention_days\": 90\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mandates/?tenant_id={{tenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "mandates", ""],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Mandate creation returns 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains mandate ID', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    ",
+                  "    // Store mandate ID for subsequent requests",
+                  "    pm.collectionVariables.set('mandateId', jsonData.id);",
+                  "});",
+                  "",
+                  "pm.test('Mandate has verification status', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('verification_status');",
+                  "});",
+                  "",
+                  "pm.test('Mandate has verification details', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('verification_details');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Fetch Created Mandate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mandates/{{mandateId}}?tenant_id={{tenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "mandates", "{{mandateId}}"],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Fetch mandate returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains mandate data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('vc_jwt');",
+                  "    pm.expect(jsonData).to.have.property('issuer_did');",
+                  "    pm.expect(jsonData).to.have.property('subject_did');",
+                  "});",
+                  "",
+                  "pm.test('Mandate verification status is present', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('verification_status');",
+                  "    pm.expect(jsonData).to.have.property('verification_reason');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Search Mandates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mandates/search?tenant_id={{tenantId}}&limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "mandates", "search"],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Search mandates returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains mandates array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('mandates');",
+                  "    pm.expect(jsonData.mandates).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Response contains pagination info', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('total');",
+                  "    pm.expect(jsonData).to.have.property('limit');",
+                  "    pm.expect(jsonData).to.have.property('offset');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Export Mandate Evidence Pack",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mandates/{{mandateId}}/export?tenant_id={{tenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "mandates", "{{mandateId}}", "export"],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Export mandate returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is a ZIP file', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/zip');",
+                  "});",
+                  "",
+                  "pm.test('Response has content-disposition header', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment');",
+                  "});",
+                  "",
+                  "pm.test('Response body is not empty', function () {",
+                  "    pm.expect(pm.response.responseSize).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Webhook Management",
+      "item": [
+        {
+          "name": "1. Create Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Webhook\",\n  \"url\": \"https://webhook.site/unique-id\",\n  \"events\": [\"MandateCreated\", \"MandateVerificationFailed\"],\n  \"secret\": \"test-webhook-secret\",\n  \"max_retries\": 3,\n  \"retry_delay_seconds\": 60,\n  \"timeout_seconds\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/webhooks/?tenant_id={{tenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "webhooks", ""],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Webhook creation returns 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains webhook ID', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    ",
+                  "    // Store webhook ID for subsequent requests",
+                  "    pm.collectionVariables.set('webhookId', jsonData.id);",
+                  "});",
+                  "",
+                  "pm.test('Webhook has correct configuration', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('name', 'Test Webhook');",
+                  "    pm.expect(jsonData).to.have.property('url');",
+                  "    pm.expect(jsonData).to.have.property('events');",
+                  "    pm.expect(jsonData.events).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. List Webhooks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/webhooks/?tenant_id={{tenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "webhooks", ""],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('List webhooks returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is an array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Response contains webhook data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.length > 0) {",
+                  "        pm.expect(jsonData[0]).to.have.property('id');",
+                  "        pm.expect(jsonData[0]).to.have.property('name');",
+                  "        pm.expect(jsonData[0]).to.have.property('url');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Get Webhook Delivery History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/webhooks/{{webhookId}}/deliveries?tenant_id={{tenantId}}&limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "webhooks", "{{webhookId}}", "deliveries"],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get webhook deliveries returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains deliveries array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('deliveries');",
+                  "    pm.expect(jsonData.deliveries).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Response contains pagination info', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('total');",
+                  "    pm.expect(jsonData).to.have.property('limit');",
+                  "    pm.expect(jsonData).to.have.property('offset');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Audit Logging",
+      "item": [
+        {
+          "name": "1. Get Audit Logs by Mandate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/audit/{{mandateId}}?tenant_id={{tenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "audit", "{{mandateId}}"],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get audit logs returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains audit logs array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('audit_logs');",
+                  "    pm.expect(jsonData.audit_logs).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Audit logs contain required fields', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.audit_logs.length > 0) {",
+                  "        const auditLog = jsonData.audit_logs[0];",
+                  "        pm.expect(auditLog).to.have.property('id');",
+                  "        pm.expect(auditLog).to.have.property('event_type');",
+                  "        pm.expect(auditLog).to.have.property('timestamp');",
+                  "        pm.expect(auditLog).to.have.property('details');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Search Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/audit/?tenant_id={{tenantId}}&event_type=VERIFY&limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "audit", ""],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}"
+                },
+                {
+                  "key": "event_type",
+                  "value": "VERIFY"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Search audit logs returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains audit logs array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('audit_logs');",
+                  "    pm.expect(jsonData.audit_logs).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Response contains pagination info', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('total');",
+                  "    pm.expect(jsonData).to.have.property('limit');",
+                  "    pm.expect(jsonData).to.have.property('offset');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error Scenarios",
+      "item": [
+        {
+          "name": "1. Create Mandate with Invalid JWT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vc_jwt\": \"invalid.jwt.token\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"retention_days\": 90\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mandates/?tenant_id={{tenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "mandates", ""],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Invalid JWT returns error status', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);",
+                  "});",
+                  "",
+                  "pm.test('Response contains error details', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Fetch Non-existent Mandate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mandates/00000000-0000-0000-0000-000000000000?tenant_id={{tenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "mandates", "00000000-0000-0000-0000-000000000000"],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Non-existent mandate returns 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Response contains error message', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Create Webhook with Invalid URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Invalid Webhook\",\n  \"url\": \"not-a-valid-url\",\n  \"events\": [\"MandateCreated\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/webhooks/?tenant_id={{tenantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "webhooks", ""],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Invalid webhook URL returns error', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+                  "});",
+                  "",
+                  "pm.test('Response contains validation error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin Operations",
+      "item": [
+        {
+          "name": "1. Get Truststore Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/truststore-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "truststore-status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Truststore status returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains truststore info', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData).to.have.property('last_refresh');",
+                  "    pm.expect(jsonData).to.have.property('issuer_count');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Retry Failed Webhook Deliveries",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/webhooks/retry-failed",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "webhooks", "retry-failed"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Retry failed webhooks returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains retry count', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+# Cloud Build configuration for CI/CD
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t', '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_SERVICE}-repo/mandate-vault:${SHORT_SHA}',
+      '-t', '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_SERVICE}-repo/mandate-vault:latest',
+      '.'
+    ]
+
+  # Push the image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push',
+      '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_SERVICE}-repo/mandate-vault:${SHORT_SHA}'
+    ]
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push',
+      '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_SERVICE}-repo/mandate-vault:latest'
+    ]
+
+  # Run database migrations
+  - name: '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_SERVICE}-repo/mandate-vault:${SHORT_SHA}'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Running database migrations..."
+        alembic upgrade head
+    env:
+      - 'DATABASE_URL=postgresql://${_DB_USER}:${_DB_PASSWORD}@${_DB_HOST}:5432/${_DB_NAME}'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'services', 'replace',
+      '--region', '${_REGION}',
+      '--image', '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_SERVICE}-repo/mandate-vault:${SHORT_SHA}',
+      '--service-account', '${_SERVICE}-cloud-run@${_PROJECT_ID}.iam.gserviceaccount.com',
+      '--vpc-connector', '${_SERVICE}-connector',
+      '--vpc-egress', 'private-ranges-only',
+      '--memory', '4Gi',
+      '--cpu', '2',
+      '--max-instances', '10',
+      '--min-instances', '1',
+      '--concurrency', '100',
+      '--timeout', '300',
+      '--set-env-vars', 'ENVIRONMENT=${_ENVIRONMENT}',
+      '${_SERVICE}'
+    ]
+
+# Substitution variables
+substitutions:
+  _ENVIRONMENT: 'staging'
+  _REGION: 'us-central1'
+  _SERVICE: 'mandate-vault'
+  _PROJECT_ID: 'your-project-id'
+  _DB_HOST: 'your-db-host'
+  _DB_USER: 'mandate_vault_user'
+  _DB_NAME: 'mandate_vault'
+  _DB_PASSWORD: 'your-db-password'
+
+# Build options
+options:
+  machineType: 'E2_HIGHCPU_8'
+  diskSizeGb: 100
+  logging: CLOUD_LOGGING_ONLY
+  env:
+    - 'DOCKER_BUILDKIT=1'
+
+# Timeout
+timeout: '1200s'
+
+

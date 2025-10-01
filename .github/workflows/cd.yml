@@ -1,0 +1,135 @@
+# GitHub Actions CD Pipeline
+# ===========================
+
+name: CD
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GAR_LOCATION: us-central1
+  REPOSITORY: mandate-vault
+  IMAGE: mandate-vault
+  REGION: us-central1
+  SERVICE: mandate-vault
+
+jobs:
+  # Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+      url: https://staging-api.yourdomain.com
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        export_default_credentials: true
+    
+    - name: Configure Docker
+      run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
+    
+    - name: Build and Push
+      run: |
+        docker build -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }} .
+        docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
+    
+    - name: Deploy to Cloud Run (Staging)
+      run: |
+        gcloud run deploy ${{ env.SERVICE }}-staging \
+          --image ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }} \
+          --region ${{ env.REGION }} \
+          --platform managed \
+          --allow-unauthenticated \
+          --set-env-vars ENVIRONMENT=staging \
+          --set-secrets=SECRET_KEY=mandate-vault-secret-key:latest,DATABASE_URL=mandate-vault-database-url-staging:latest
+    
+    - name: Run Smoke Tests
+      run: |
+        STAGING_URL=$(gcloud run services describe ${{ env.SERVICE }}-staging --region ${{ env.REGION }} --format 'value(status.url)')
+        curl -f $STAGING_URL/healthz || exit 1
+
+  # Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: production
+      url: https://api.yourdomain.com
+    needs: [build-and-push]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        export_default_credentials: true
+    
+    - name: Deploy to Kubernetes
+      run: |
+        gcloud container clusters get-credentials mandate-vault-cluster --region ${{ env.REGION }}
+        
+        # Update image in deployment
+        kubectl set image deployment/mandate-vault \
+          api=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.ref_name }} \
+          -n mandate-vault
+        
+        # Wait for rollout
+        kubectl rollout status deployment/mandate-vault -n mandate-vault
+    
+    - name: Run Production Health Check
+      run: |
+        kubectl wait --for=condition=ready pod -l app=mandate-vault -n mandate-vault --timeout=300s
+        
+        # Test health endpoint
+        PROD_URL="https://api.yourdomain.com"
+        curl -f $PROD_URL/healthz || exit 1
+    
+    - name: Notify Deployment
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: 'Deployed mandate-vault ${{ github.ref_name }} to production'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      if: always()
+
+  # Build and Push Docker Image
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        export_default_credentials: true
+    
+    - name: Configure Docker
+      run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
+    
+    - name: Build and Push
+      run: |
+        docker build -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.ref_name }} .
+        docker build -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest .
+        docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.ref_name }}
+        docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest
+

@@ -1,0 +1,17 @@
+# Kubernetes ConfigMap
+# ====================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mandate-vault-config
+  namespace: mandate-vault
+data:
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "WARNING"
+  LOG_FORMAT: "json"
+  ENABLE_METRICS: "true"
+  CORS_ORIGINS: "https://app.yourdomain.com,https://www.yourdomain.com"
+  RATE_LIMIT_REQUESTS: "100"
+  RATE_LIMIT_WINDOW: "60"
+

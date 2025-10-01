@@ -1,0 +1,216 @@
+# Prometheus Alert Rules for Mandate Vault
+# =========================================
+
+groups:
+  # Critical Alerts
+  - name: mandate_vault_critical
+    interval: 30s
+    rules:
+      # High error rate (> 10 errors/sec for 5 minutes)
+      - alert: HighErrorRate
+        expr: sum(rate(errors_total[5m])) > 10
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+          component: api
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanize }} errors/sec (threshold: 10/sec)"
+          dashboard: "http://grafana.example.com/d/mandate-vault"
+          runbook: "https://docs.example.com/runbooks/high-error-rate"
+      
+      # Database connection pool exhausted
+      - alert: DatabaseConnectionPoolExhausted
+        expr: db_connections_active >= 20
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+          component: database
+        annotations:
+          summary: "Database connection pool exhausted"
+          description: "All {{ $value }} database connections in use"
+          runbook: "https://docs.example.com/runbooks/db-pool-exhausted"
+      
+      # Service down (no metrics for 2 minutes)
+      - alert: ServiceDown
+        expr: up{job="mandate-vault-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+          component: api
+        annotations:
+          summary: "Mandate Vault API is down"
+          description: "Service {{ $labels.instance }} has been down for > 2 minutes"
+          runbook: "https://docs.example.com/runbooks/service-down"
+      
+      # Very high response time (> 5 seconds)
+      - alert: VeryHighResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 5.0
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+          component: api
+        annotations:
+          summary: "Very high response times"
+          description: "P95 latency is {{ $value | humanizeDuration }} (threshold: 5s)"
+          runbook: "https://docs.example.com/runbooks/slow-response"
+
+  # Warning Alerts
+  - name: mandate_vault_warnings
+    interval: 1m
+    rules:
+      # High JWT verification failure rate (> 20%)
+      - alert: HighJWTVerificationFailureRate
+        expr: |
+          (sum(rate(jwt_verifications_total{status!="VALID"}[5m])) /
+           sum(rate(jwt_verifications_total[5m]))) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+          component: jwt-verification
+        annotations:
+          summary: "High JWT verification failure rate"
+          description: "{{ $value | humanizePercentage }} of JWT verifications are failing (threshold: 20%)"
+          runbook: "https://docs.example.com/runbooks/jwt-failures"
+      
+      # Webhook delivery failures (> 5/sec)
+      - alert: WebhookDeliveryFailures
+        expr: rate(webhook_deliveries_total{status="failed"}[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+          component: webhooks
+        annotations:
+          summary: "High webhook delivery failure rate"
+          description: "{{ $value | humanize }} failed webhook deliveries/sec (threshold: 5/sec)"
+          runbook: "https://docs.example.com/runbooks/webhook-failures"
+      
+      # Slow response times (> 2 seconds P95)
+      - alert: SlowResponseTimes
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+          component: api
+        annotations:
+          summary: "Slow API response times"
+          description: "P95 latency is {{ $value | humanizeDuration }} (threshold: 2s)"
+          runbook: "https://docs.example.com/runbooks/slow-response"
+      
+      # High authentication failure rate (> 10/sec)
+      - alert: HighAuthFailureRate
+        expr: sum(rate(auth_attempts_total{result="failed"}[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+          component: authentication
+        annotations:
+          summary: "High authentication failure rate"
+          description: "{{ $value | humanize }} failed login attempts/sec (threshold: 10/sec) - possible brute force attack"
+          runbook: "https://docs.example.com/runbooks/high-auth-failures"
+      
+      # Account lockouts (> 5/min)
+      - alert: AccountLockouts
+        expr: sum(rate(auth_attempts_total{result="locked_out"}[1m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+          component: authentication
+        annotations:
+          summary: "High rate of account lockouts"
+          description: "{{ $value | humanize }} account lockouts/min (threshold: 5/min)"
+          runbook: "https://docs.example.com/runbooks/account-lockouts"
+      
+      # High database query latency (> 1 second)
+      - alert: HighDatabaseLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(db_query_duration_seconds_bucket[5m])
+          ) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+          component: database
+        annotations:
+          summary: "High database query latency"
+          description: "P95 database query latency is {{ $value | humanizeDuration }} (threshold: 1s)"
+          runbook: "https://docs.example.com/runbooks/slow-database"
+
+  # Capacity Alerts
+  - name: mandate_vault_capacity
+    interval: 5m
+    rules:
+      # Database connection pool usage (> 80%)
+      - alert: HighDatabaseConnectionPoolUsage
+        expr: (db_connections_active / 20) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+          component: database
+        annotations:
+          summary: "High database connection pool usage"
+          description: "{{ $value | humanizePercentage }} of database connections in use (threshold: 80%)"
+          runbook: "https://docs.example.com/runbooks/db-pool-usage"
+      
+      # High request rate (> 1000 req/sec)
+      - alert: HighRequestRate
+        expr: sum(rate(http_requests_total[5m])) > 1000
+        for: 5m
+        labels:
+          severity: info
+          team: backend
+          component: api
+        annotations:
+          summary: "Very high request rate"
+          description: "Request rate is {{ $value | humanize }} req/sec (consider scaling)"
+          runbook: "https://docs.example.com/runbooks/scaling"
+
+  # Business Metrics Alerts
+  - name: mandate_vault_business
+    interval: 5m
+    rules:
+      # No mandate creations in 1 hour (during business hours)
+      - alert: NoMandateCreations
+        expr: rate(mandates_created_total[1h]) == 0
+        for: 1h
+        labels:
+          severity: warning
+          team: product
+          component: mandates
+        annotations:
+          summary: "No mandates created in the last hour"
+          description: "This may indicate a problem with the mandate creation flow"
+          runbook: "https://docs.example.com/runbooks/no-mandates"
+      
+      # High mandate rejection rate (> 30%)
+      - alert: HighMandateRejectionRate
+        expr: |
+          (sum(rate(mandates_created_total{verification_status!="VALID"}[5m])) /
+           sum(rate(mandates_created_total[5m]))) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+          team: product
+          component: verification
+        annotations:
+          summary: "High mandate rejection rate"
+          description: "{{ $value | humanizePercentage }} of mandates are being rejected (threshold: 30%)"
+          runbook: "https://docs.example.com/runbooks/high-rejections"
+
