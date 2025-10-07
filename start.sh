@@ -125,7 +125,7 @@ try:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     password_hash = pwd_context.hash("$ADMIN_PASSWORD")
     
-    # Create admin user with correct schema
+    # Create admin user with correct schema (matching User model exactly)
     engine = create_engine(database_url)
     with engine.connect() as conn:
         # First ensure default tenant exists (in customers table)
@@ -135,11 +135,18 @@ try:
             ON CONFLICT (tenant_id) DO NOTHING
         """))
         
-        # Create admin user (users table doesn't have status column)
+        # Create admin user with correct columns from User model:
+        # status (not is_active), email_verified, role='admin'
         user_id = str(__import__('uuid').uuid4())
         conn.execute(text("""
-            INSERT INTO users (id, email, password_hash, full_name, role, is_active, tenant_id, created_at, updated_at)
-            VALUES (:user_id, 'admin@example.com', :password_hash, 'Admin User', 'admin', true, 'default', NOW(), NOW())
+            INSERT INTO users (
+                id, email, password_hash, full_name, tenant_id, role, status, 
+                email_verified, failed_login_attempts, created_at, updated_at
+            )
+            VALUES (
+                :user_id, 'admin@example.com', :password_hash, 'Admin User', 'default', 
+                'admin', 'active', true, '0', NOW(), NOW()
+            )
         """), {"user_id": user_id, "password_hash": password_hash})
         conn.commit()
     
