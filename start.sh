@@ -74,9 +74,6 @@ else
     fi
 fi
 
-# Re-enable exit on error
-set -e
-
 # Check if admin user exists and create if needed
 echo "👤 Checking for admin user..."
 
@@ -117,6 +114,9 @@ fi
 
 echo "🎉 Initialization complete!"
 echo "🚀 Starting application server..."
+
+# Re-enable exit on error for the actual app
+set -e
 
 # Start the application
 exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
