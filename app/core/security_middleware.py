@@ -29,15 +29,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-DNS-Prefetch-Control"] = "off"
         response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
         
-        # Content Security Policy - Allow Swagger UI CDN in development
-        if settings.environment == "development":
-            # Relaxed CSP for development to allow Swagger UI from CDN
+        # Content Security Policy - Allow Swagger UI CDN in development and staging
+        if settings.environment in ("development", "staging"):
+            # Relaxed CSP for development/staging to allow Swagger UI from CDN
             csp = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.redoc.ly; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
                 "img-src 'self' data: https:; "
-                "font-src 'self' https://cdn.jsdelivr.net; "
+                "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; "
                 "connect-src 'self'; "
                 "frame-ancestors 'none'; "
                 "base-uri 'self'; "

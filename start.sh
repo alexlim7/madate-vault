@@ -125,12 +125,20 @@ try:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     password_hash = pwd_context.hash("$ADMIN_PASSWORD")
     
-    # Create admin user
+    # Create admin user with correct role value
     engine = create_engine(database_url)
     with engine.connect() as conn:
+        # First ensure default tenant exists (in customers table)
         conn.execute(text("""
-            INSERT INTO users (email, username, password_hash, role, is_active, tenant_id, created_at, updated_at)
-            VALUES ('admin@example.com', 'admin', :password_hash, 'ADMIN', true, 'default', NOW(), NOW())
+            INSERT INTO customers (tenant_id, name, status, created_at, updated_at)
+            VALUES ('default', 'Default Tenant', 'active', NOW(), NOW())
+            ON CONFLICT (tenant_id) DO NOTHING
+        """))
+        
+        # Create admin user
+        conn.execute(text("""
+            INSERT INTO users (id, email, password_hash, full_name, role, status, is_active, tenant_id, created_at, updated_at)
+            VALUES (gen_random_uuid()::text, 'admin@example.com', :password_hash, 'Admin User', 'admin', 'active', true, 'default', NOW(), NOW())
         """), {"password_hash": password_hash})
         conn.commit()
     
