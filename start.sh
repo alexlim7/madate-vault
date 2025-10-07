@@ -104,13 +104,8 @@ if [ $? -eq 0 ]; then
     echo "✅ Admin user already exists"
 else
     echo "👤 Creating admin user..."
-    # Export environment variables for the seed script
-    export PYTHONPATH=/app
-    export DATABASE_URL="${DATABASE_URL}"
-    export SECRET_KEY="${SECRET_KEY}"
-    export ENVIRONMENT="${ENVIRONMENT:-production}"
-    
-    python scripts/seed_initial_data.py
+    # Run seed script with environment variables inline
+    cd /app && python scripts/seed_initial_data.py
     if [ $? -eq 0 ]; then
         echo "✅ Admin user created!"
     else
