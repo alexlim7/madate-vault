@@ -154,7 +154,7 @@ try:
             ON CONFLICT (tenant_id) DO NOTHING
         """))
         
-        # Create admin user - cast to enum properly
+        # Create admin user - use UPPERCASE enum values (as they exist in DB)
         user_id = str(__import__('uuid').uuid4())
         conn.execute(text("""
             INSERT INTO users (
@@ -163,7 +163,7 @@ try:
             )
             VALUES (
                 :user_id, 'admin@example.com', :password_hash, 'Admin User', 'default', 
-                CAST('admin' AS userrole), CAST('active' AS userstatus), true, '0', NOW(), NOW()
+                CAST('ADMIN' AS userrole), CAST('ACTIVE' AS userstatus), true, '0', NOW(), NOW()
             )
         """), {"user_id": user_id, "password_hash": password_hash})
         conn.commit()
