@@ -104,15 +104,9 @@ if [ $? -eq 0 ]; then
     echo "✅ Admin user already exists"
 else
     echo "👤 Creating admin user..."
-    # Debug: Check if DATABASE_URL is set
-    if [ -z "$DATABASE_URL" ]; then
-        echo "⚠️  WARNING: DATABASE_URL is not set!"
-    else
-        echo "✅ DATABASE_URL is configured"
-    fi
     
-    # Run seed script - environment should be inherited
-    python /app/scripts/seed_initial_data.py
+    # Run seed script with proper PYTHONPATH
+    (cd /app && PYTHONPATH=/app python scripts/seed_initial_data.py)
     if [ $? -eq 0 ]; then
         echo "✅ Admin user created!"
     else
