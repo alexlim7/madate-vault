@@ -34,7 +34,12 @@ _import_models()
 def get_database_url() -> str:
     """Get database URL with fallback to SQLite for development."""
     if settings.database_url:
-        return settings.database_url
+        # Convert postgresql:// to postgresql+asyncpg:// for async driver
+        database_url = settings.database_url
+        if database_url.startswith("postgresql://"):
+            database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            logger.info("Converted DATABASE_URL to use asyncpg driver")
+        return database_url
     
     # Default to SQLite for development
     logger.warning("No DATABASE_URL set, using SQLite (not suitable for production)")
