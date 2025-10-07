@@ -79,27 +79,28 @@ set -e
 
 # Check if admin user exists and create if needed
 echo "👤 Checking for admin user..."
+
+# Use synchronous check instead of async
 python3 << 'PYTHON_SCRIPT'
-import asyncio
 import sys
-from sqlalchemy import select
-from app.core.database import AsyncSessionLocal
-from app.models.user import User
+from sqlalchemy import create_engine, text
+import os
 
-async def check_admin():
-    try:
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(
-                select(User).where(User.email == "admin@example.com")
-            )
-            admin = result.scalar_one_or_none()
-            return admin is not None
-    except Exception as e:
-        print(f"Error checking admin: {e}")
-        return False
-
-has_admin = asyncio.run(check_admin())
-sys.exit(0 if has_admin else 1)
+try:
+    database_url = os.getenv('DATABASE_URL')
+    if database_url and database_url.startswith('postgresql+asyncpg://'):
+        database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://', 1)
+    
+    engine = create_engine(database_url)
+    with engine.connect() as conn:
+        result = conn.execute(text("SELECT COUNT(*) FROM users WHERE email = 'admin@example.com'"))
+        count = result.scalar()
+        print(f"Found {count} admin user(s)")
+        sys.exit(0 if count > 0 else 1)
+except Exception as e:
+    print(f"Error checking admin: {e}")
+    print("Will attempt to create admin user...")
+    sys.exit(1)
 PYTHON_SCRIPT
 
 if [ $? -eq 0 ]; then
@@ -107,7 +108,11 @@ if [ $? -eq 0 ]; then
 else
     echo "👤 Creating admin user..."
     python scripts/seed_initial_data.py
-    echo "✅ Admin user created!"
+    if [ $? -eq 0 ]; then
+        echo "✅ Admin user created!"
+    else
+        echo "⚠️  Could not create admin user, but continuing..."
+    fi
 fi
 
 echo "🎉 Initialization complete!"
