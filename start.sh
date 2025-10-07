@@ -104,7 +104,7 @@ if [ $? -eq 0 ]; then
     echo "✅ Admin user already exists"
 else
     echo "👤 Creating admin user..."
-    python scripts/seed_initial_data.py
+    PYTHONPATH=/app python scripts/seed_initial_data.py
     if [ $? -eq 0 ]; then
         echo "✅ Admin user created!"
     else
