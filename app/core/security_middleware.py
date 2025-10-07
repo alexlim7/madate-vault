@@ -127,12 +127,15 @@ def setup_security_middleware(app: FastAPI):
         allowed_hosts = [
             "mandatevault.com",
             "app.mandatevault.com",
-            "admin.mandatevault.com"
+            "admin.mandatevault.com",
+            "mandate-vault.onrender.com",  # Render.com deployment
+            "*.onrender.com"  # Allow all Render subdomains
         ]
     elif settings.environment == "staging":
         allowed_hosts = [
             "staging.mandatevault.com",
-            "staging-app.mandatevault.com"
+            "staging-app.mandatevault.com",
+            "mandate-vault.onrender.com"
         ]
     else:
         allowed_hosts = ["*"]  # Development
