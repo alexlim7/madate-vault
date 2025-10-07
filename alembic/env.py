@@ -75,11 +75,23 @@ def run_migrations_online() -> None:
         with context.begin_transaction():
             context.run_migrations()
 
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    # Get database URL from environment variable if available
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        # Convert postgresql+asyncpg:// back to postgresql:// for Alembic
+        if database_url.startswith('postgresql+asyncpg://'):
+            database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://', 1)
+        
+        # Create engine with the database URL from environment
+        from sqlalchemy import create_engine
+        connectable = create_engine(database_url, poolclass=pool.NullPool)
+    else:
+        # Fall back to config file
+        connectable = engine_from_config(
+            config.get_section(config.config_ini_section, {}),
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+        )
 
     with connectable.connect() as connection:
         do_run_migrations(connection)
