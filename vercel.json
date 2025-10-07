@@ -1,20 +1,10 @@
 {
   "version": 2,
   "name": "mandate-vault",
-  "builds": [
+  "rewrites": [
     {
-      "src": "landing.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/",
-      "dest": "/landing.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/",
+      "destination": "/landing.html"
     }
   ]
 }
