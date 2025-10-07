@@ -128,15 +128,33 @@ try:
     # Create admin user with correct schema (matching User model exactly)
     engine = create_engine(database_url)
     with engine.connect() as conn:
-        # First ensure default tenant exists (in customers table)
+        # First, check what enum values actually exist
+        result = conn.execute(text("""
+            SELECT e.enumlabel 
+            FROM pg_type t 
+            JOIN pg_enum e ON t.oid = e.enumtypid  
+            WHERE t.typname = 'userrole'
+        """))
+        enum_values = [row[0] for row in result]
+        print(f"Available UserRole enum values: {enum_values}")
+        
+        result = conn.execute(text("""
+            SELECT e.enumlabel 
+            FROM pg_type t 
+            JOIN pg_enum e ON t.oid = e.enumtypid  
+            WHERE t.typname = 'userstatus'
+        """))
+        status_values = [row[0] for row in result]
+        print(f"Available UserStatus enum values: {status_values}")
+        
+        # Ensure default tenant exists (in customers table)
         conn.execute(text("""
             INSERT INTO customers (tenant_id, name, is_active, created_at, updated_at)
             VALUES ('default', 'Default Tenant', true, NOW(), NOW())
             ON CONFLICT (tenant_id) DO NOTHING
         """))
         
-        # Create admin user with correct columns from User model:
-        # status (not is_active), email_verified, role='admin'
+        # Create admin user - cast to enum properly
         user_id = str(__import__('uuid').uuid4())
         conn.execute(text("""
             INSERT INTO users (
@@ -145,7 +163,7 @@ try:
             )
             VALUES (
                 :user_id, 'admin@example.com', :password_hash, 'Admin User', 'default', 
-                'admin', 'active', true, '0', NOW(), NOW()
+                CAST('admin' AS userrole), CAST('active' AS userstatus), true, '0', NOW(), NOW()
             )
         """), {"user_id": user_id, "password_hash": password_hash})
         conn.commit()
