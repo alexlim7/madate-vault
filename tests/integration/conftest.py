@@ -92,8 +92,9 @@ async def test_client(test_engine):
 @pytest.fixture
 async def test_customer(db_session) -> Customer:
     """Create test customer."""
+    import uuid
     customer = Customer(
-        tenant_id="test-tenant-integration",
+        tenant_id=str(uuid.uuid4()),
         name="Integration Test Corp",
         email="integration@test.com",
         is_active=True

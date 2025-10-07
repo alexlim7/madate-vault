@@ -3,7 +3,7 @@ Main client for Mandate Vault API.
 """
 import requests
 from typing import Optional, Dict, Any, List
-from .resources import Mandates, Webhooks, Audit, Users
+from .resources import Authorizations, Mandates, Webhooks, Audit, Users
 from .exceptions import handle_error_response
 
 
@@ -39,7 +39,8 @@ class MandateVaultClient:
         self.timeout = timeout
         
         # Initialize resource clients
-        self.mandates = Mandates(self)
+        self.authorizations = Authorizations(self)  # NEW: Multi-protocol API
+        self.mandates = Mandates(self)  # DEPRECATED: AP2 only
         self.webhooks = Webhooks(self)
         self.audit = Audit(self)
         self.users = Users(self)
@@ -114,4 +115,44 @@ class MandateVaultClient:
     def delete(self, path: str, **kwargs) -> Dict[str, Any]:
         """Make DELETE request."""
         return self._request('DELETE', path, **kwargs)
+    
+    def get_raw(self, path: str, **kwargs) -> requests.Response:
+        """
+        Make GET request and return raw response (for file downloads).
+        
+        Args:
+            path: API endpoint path
+            **kwargs: Additional arguments for requests
+        
+        Returns:
+            Raw requests.Response object
+        """
+        url = f"{self.base_url}{path}"
+        
+        # Set headers
+        headers = kwargs.pop('headers', {})
+        headers.update({
+            'X-API-Key': self.api_key,
+            'User-Agent': 'mandate-vault-python/1.0.0'
+        })
+        
+        # Make request
+        try:
+            response = requests.get(
+                url=url,
+                headers=headers,
+                timeout=self.timeout,
+                **kwargs
+            )
+            
+            # Handle errors
+            if response.status_code >= 400:
+                handle_error_response(response)
+            
+            return response
+            
+        except requests.exceptions.Timeout:
+            raise TimeoutError(f"Request timed out after {self.timeout}s")
+        except requests.exceptions.ConnectionError as e:
+            raise ConnectionError(f"Connection error: {str(e)}")
 

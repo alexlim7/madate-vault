@@ -1,0 +1,94 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+      - production
+  workflow_dispatch:  # Allows manual triggering
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+  SERVICE_NAME: mandate-vault
+
+jobs:
+  deploy:
+    name: Deploy to Google Cloud Run
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Build Docker image
+        run: |
+          docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA \
+                       -t gcr.io/$PROJECT_ID/$SERVICE_NAME:latest .
+
+      - name: Push Docker image
+        run: |
+          docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
+          docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy $SERVICE_NAME \
+            --image gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA \
+            --platform managed \
+            --region $REGION \
+            --allow-unauthenticated \
+            --memory 2Gi \
+            --cpu 2 \
+            --min-instances 1 \
+            --max-instances 10 \
+            --timeout 300 \
+            --concurrency 100 \
+            --vpc-connector mandate-vault-connector \
+            --add-cloudsql-instances $PROJECT_ID:$REGION:mandate-vault-db \
+            --set-secrets "SECRET_KEY=mandate-vault-secret-key:latest,ACP_WEBHOOK_SECRET=mandate-vault-acp-webhook-secret:latest" \
+            --set-env-vars "ENVIRONMENT=production,DEBUG=false,DATABASE_URL=${{ secrets.DATABASE_URL }}"
+
+      - name: Run Database Migrations
+        run: |
+          gcloud run jobs execute mandate-vault-migrate \
+            --region $REGION \
+            --wait || echo "Migration job might need to be created first"
+
+      - name: Get Service URL
+        id: get-url
+        run: |
+          URL=$(gcloud run services describe $SERVICE_NAME \
+            --region $REGION \
+            --format 'value(status.url)')
+          echo "SERVICE_URL=$URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $URL"
+
+      - name: Health Check
+        run: |
+          sleep 10
+          curl -f ${{ steps.get-url.outputs.SERVICE_URL }}/healthz || exit 1
+
+      - name: Notify on Success
+        if: success()
+        run: |
+          echo "✅ Deployment successful!"
+          echo "Service URL: ${{ steps.get-url.outputs.SERVICE_URL }}"
+          echo "API Docs: ${{ steps.get-url.outputs.SERVICE_URL }}/docs"
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Check logs: gcloud run services logs tail $SERVICE_NAME --region $REGION"

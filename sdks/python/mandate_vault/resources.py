@@ -11,8 +11,211 @@ class Resource:
         self.client = client
 
 
+class Authorizations(Resource):
+    """
+    Authorization resource (multi-protocol: AP2 + ACP).
+    
+    This is the modern API for managing authorizations.
+    Supports both AP2 (JWT-VC) and ACP (Delegated Token) protocols.
+    """
+    
+    def create(
+        self,
+        protocol: str,
+        payload: Dict[str, Any],
+        tenant_id: str,
+        retention_days: int = 90
+    ) -> Dict[str, Any]:
+        """
+        Create a new authorization (AP2 or ACP).
+        
+        Args:
+            protocol: Protocol type ('AP2' or 'ACP')
+            payload: Protocol-specific payload
+            tenant_id: Your tenant ID
+            retention_days: Retention period
+        
+        Returns:
+            Created authorization object
+        
+        Examples:
+            AP2 (JWT-VC):
+            >>> auth = client.authorizations.create(
+            ...     protocol='AP2',
+            ...     payload={'vc_jwt': 'eyJhbGc...'},
+            ...     tenant_id='tenant-123'
+            ... )
+            
+            ACP (Delegated Token):
+            >>> auth = client.authorizations.create(
+            ...     protocol='ACP',
+            ...     payload={
+            ...         'token_id': 'acp-token-123',
+            ...         'psp_id': 'psp-stripe',
+            ...         'merchant_id': 'merchant-456',
+            ...         'max_amount': '5000.00',
+            ...         'currency': 'USD',
+            ...         'expires_at': '2026-01-01T00:00:00Z',
+            ...         'constraints': {}
+            ...     },
+            ...     tenant_id='tenant-123'
+            ... )
+        """
+        return self.client.post('/api/v1/authorizations/', json={
+            'protocol': protocol,
+            'payload': payload,
+            'tenant_id': tenant_id,
+            'retention_days': retention_days
+        })
+    
+    def get(self, authorization_id: str) -> Dict[str, Any]:
+        """
+        Get authorization by ID.
+        
+        Args:
+            authorization_id: Authorization ID
+        
+        Returns:
+            Authorization object
+        """
+        return self.client.get(f'/api/v1/authorizations/{authorization_id}')
+    
+    def verify(self, authorization_id: str) -> Dict[str, Any]:
+        """
+        Re-verify an existing authorization.
+        
+        Args:
+            authorization_id: Authorization ID
+        
+        Returns:
+            Verification result with updated status
+        """
+        return self.client.post(f'/api/v1/authorizations/{authorization_id}/verify', json={})
+    
+    def search(
+        self,
+        tenant_id: str,
+        protocol: Optional[str] = None,
+        issuer: Optional[str] = None,
+        subject: Optional[str] = None,
+        status: Optional[str] = None,
+        expires_before: Optional[str] = None,
+        min_amount: Optional[str] = None,
+        max_amount: Optional[str] = None,
+        currency: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0,
+        sort_by: str = 'created_at',
+        sort_order: str = 'desc'
+    ) -> Dict[str, Any]:
+        """
+        Search authorizations with advanced filters.
+        
+        Args:
+            tenant_id: Your tenant ID
+            protocol: Filter by protocol ('AP2' or 'ACP')
+            issuer: Filter by issuer (DID or PSP ID)
+            subject: Filter by subject (DID or merchant ID)
+            status: Filter by status
+            expires_before: ISO datetime string
+            min_amount: Minimum amount filter
+            max_amount: Maximum amount filter
+            currency: Currency code filter
+            limit: Max results per page
+            offset: Pagination offset
+            sort_by: Sort field
+            sort_order: Sort order ('asc' or 'desc')
+        
+        Returns:
+            Search results with authorizations list and total count
+        
+        Example:
+            >>> results = client.authorizations.search(
+            ...     tenant_id='tenant-123',
+            ...     protocol='ACP',
+            ...     status='VALID',
+            ...     currency='USD',
+            ...     min_amount='1000.00',
+            ...     limit=50
+            ... )
+            >>> print(f"Found {results['total']} authorizations")
+            >>> for auth in results['authorizations']:
+            ...     print(f"  {auth['id']}: {auth['protocol']}")
+        """
+        params = {
+            'tenant_id': tenant_id,
+            'limit': limit,
+            'offset': offset,
+            'sort_by': sort_by,
+            'sort_order': sort_order
+        }
+        
+        if protocol:
+            params['protocol'] = protocol
+        if issuer:
+            params['issuer'] = issuer
+        if subject:
+            params['subject'] = subject
+        if status:
+            params['status'] = status
+        if expires_before:
+            params['expires_before'] = expires_before
+        if min_amount:
+            params['min_amount'] = min_amount
+        if max_amount:
+            params['max_amount'] = max_amount
+        if currency:
+            params['currency'] = currency
+        
+        return self.client.post('/api/v1/authorizations/search', json=params)
+    
+    def revoke(self, authorization_id: str) -> Dict[str, Any]:
+        """
+        Revoke an authorization.
+        
+        Args:
+            authorization_id: Authorization ID
+        
+        Returns:
+            Revoked authorization object
+        """
+        return self.client.delete(f'/api/v1/authorizations/{authorization_id}')
+    
+    def export_evidence_pack(self, authorization_id: str, output_path: str) -> str:
+        """
+        Export evidence pack as ZIP file.
+        
+        Args:
+            authorization_id: Authorization ID
+            output_path: Path to save ZIP file
+        
+        Returns:
+            Path to saved ZIP file
+        
+        Example:
+            >>> path = client.authorizations.export_evidence_pack(
+            ...     authorization_id='auth-123',
+            ...     output_path='./evidence_pack.zip'
+            ... )
+            >>> print(f"Evidence pack saved to {path}")
+        """
+        response = self.client.get_raw(f'/api/v1/authorizations/{authorization_id}/evidence-pack')
+        
+        with open(output_path, 'wb') as f:
+            f.write(response.content)
+        
+        return output_path
+
+
 class Mandates(Resource):
-    """Mandate resource."""
+    """
+    Mandate resource (DEPRECATED).
+    
+    ⚠️ Use `client.authorizations` instead for new code.
+    
+    This resource only supports AP2 (JWT-VC) protocol.
+    The new `Authorizations` resource supports both AP2 and ACP protocols.
+    """
     
     def create(
         self,

@@ -115,22 +115,63 @@ http_request_duration_seconds = Histogram(
 # Business metrics
 mandates_created_total = Counter(
     'mandates_created_total',
-    'Total mandates created',
+    'Total mandates created (DEPRECATED - use authorizations_created_total)',
     ['tenant_id', 'verification_status']
 )
 
 mandates_active = Gauge(
     'mandates_active',
-    'Number of active mandates',
+    'Number of active mandates (DEPRECATED - use authorizations_active)',
     ['tenant_id']
 )
 
+# Multi-protocol authorization metrics (NEW)
+authorizations_created_total = Counter(
+    'authorizations_created_total',
+    'Total authorizations created by protocol',
+    ['protocol', 'status', 'tenant_id']
+)
+
+authorizations_active = Gauge(
+    'authorizations_active',
+    'Number of active authorizations by protocol',
+    ['protocol', 'status', 'tenant_id']
+)
+
+authorizations_verified_total = Counter(
+    'authorizations_verified_total',
+    'Total authorization verifications',
+    ['protocol', 'status']
+)
+
+authorizations_revoked_total = Counter(
+    'authorizations_revoked_total',
+    'Total authorizations revoked',
+    ['protocol', 'tenant_id']
+)
+
+# Evidence pack metrics
+evidence_packs_exported_total = Counter(
+    'evidence_packs_exported_total',
+    'Total evidence packs exported',
+    ['protocol', 'tenant_id']
+)
+
+evidence_pack_export_duration_seconds = Histogram(
+    'evidence_pack_export_duration_seconds',
+    'Evidence pack export duration',
+    ['protocol'],
+    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+)
+
+# JWT verification metrics
 jwt_verifications_total = Counter(
     'jwt_verifications_total',
     'Total JWT verifications',
     ['status', 'issuer']
 )
 
+# Webhook metrics
 webhook_deliveries_total = Counter(
     'webhook_deliveries_total',
     'Total webhook deliveries',
@@ -142,6 +183,31 @@ webhook_delivery_duration_seconds = Histogram(
     'Webhook delivery latency',
     ['event_type'],
     buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0]
+)
+
+webhook_delivery_failures_total = Counter(
+    'webhook_delivery_failures_total',
+    'Total webhook delivery failures',
+    ['event_type', 'failure_reason']
+)
+
+webhook_delivery_retries_total = Counter(
+    'webhook_delivery_retries_total',
+    'Total webhook delivery retries',
+    ['event_type']
+)
+
+# ACP webhook metrics
+acp_webhook_events_received_total = Counter(
+    'acp_webhook_events_received_total',
+    'Total ACP webhook events received',
+    ['event_type', 'status']
+)
+
+acp_webhook_signature_failures_total = Counter(
+    'acp_webhook_signature_failures_total',
+    'Total ACP webhook signature verification failures',
+    ['reason']
 )
 
 # Authentication metrics

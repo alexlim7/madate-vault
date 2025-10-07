@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mandate Vault - Enterprise Digital Authorization Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ===== CSS Reset & Base Styles ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0e0e10;
+            --bg-secondary: #1a1a1f;
+            --bg-tertiary: #25252b;
+            --text-primary: #ffffff;
+            --text-secondary: #b4b4b8;
+            --accent-primary: #4f46e5;
+            --accent-hover: #6366f1;
+            --accent-dark: #3730a3;
+            --border-color: #2a2a32;
+            --success-color: #10b981;
+            --max-width: 1200px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ===== Typography ===== */
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        p {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+        }
+
+        /* ===== Container ===== */
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        /* ===== Navigation ===== */
+        nav {
+            background-color: rgba(14, 14, 16, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.25rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        /* ===== Buttons ===== */
+        .btn {
+            display: inline-block;
+            padding: 0.875rem 1.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: var(--text-primary);
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-primary);
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .btn-large {
+            padding: 1.125rem 2.25rem;
+            font-size: 1.125rem;
+        }
+
+        /* ===== Hero Section ===== */
+        .hero {
+            padding: 8rem 0 6rem;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1200px;
+            height: 1200px;
+            background: radial-gradient(circle, rgba(79, 70, 229, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #b4b4b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.375rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(79, 70, 229, 0.1);
+            border: 1px solid rgba(79, 70, 229, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            color: var(--accent-hover);
+            margin-bottom: 2rem;
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--success-color);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ===== Sections ===== */
+        section {
+            padding: 6rem 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-title {
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* ===== Protocol Section ===== */
+        .protocols {
+            background: var(--bg-secondary);
+        }
+
+        .protocol-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .protocol-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .protocol-card:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .protocol-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(79, 70, 229, 0.15);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .protocol-card h3 {
+            margin-bottom: 0.75rem;
+        }
+
+        .protocol-card p {
+            font-size: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .protocol-features {
+            list-style: none;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .protocol-features li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .protocol-features li::before {
+            content: '✓';
+            color: var(--success-color);
+            font-weight: 700;
+            font-size: 1.125rem;
+        }
+
+        /* ===== Features Grid ===== */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h4 {
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            font-size: 0.95rem;
+        }
+
+        /* ===== Use Cases ===== */
+        .use-cases {
+            background: var(--bg-secondary);
+        }
+
+        .use-case-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .use-case {
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 2rem 1.75rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .use-case:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-primary);
+        }
+
+        .use-case-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .use-case h4 {
+            margin-bottom: 0.5rem;
+            font-size: 1.125rem;
+        }
+
+        .use-case p {
+            font-size: 0.875rem;
+        }
+
+        /* ===== Security Section ===== */
+        .security-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.75rem;
+        }
+
+        .security-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .security-item:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .security-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(79, 70, 229, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .security-item h4 {
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .security-item p {
+            font-size: 0.875rem;
+        }
+
+        /* ===== Stats Section ===== */
+        .stats {
+            background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent-primary) 100%);
+            padding: 4rem 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 3rem;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-item p {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* ===== CTA Section ===== */
+        .cta-section {
+            background: var(--bg-secondary);
+            padding: 5rem 0;
+        }
+
+        .cta-content {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .cta-content h2 {
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-content p {
+            font-size: 1.25rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* ===== Footer ===== */
+        footer {
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-color);
+            padding: 4rem 0 2rem;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+
+        .footer-column h4 {
+            margin-bottom: 1.25rem;
+            font-size: 1rem;
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .footer-about {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* ===== Code Snippet ===== */
+        .code-example {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 3rem;
+            overflow-x: auto;
+        }
+
+        .code-example code {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--success-color);
+            line-height: 1.8;
+        }
+
+        /* ===== Responsive Design ===== */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 2rem;
+            }
+
+            h3 {
+                font-size: 1.25rem;
+            }
+
+            .hero {
+                padding: 5rem 0 4rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1.125rem;
+            }
+
+            section {
+                padding: 4rem 0;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .protocol-grid,
+            .features-grid,
+            .use-case-grid,
+            .security-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                gap: 2rem;
+            }
+
+            .stat-item h3 {
+                font-size: 2.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-cta {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <div class="logo">
+                <div class="logo-icon">M</div>
+                <span>Mandate Vault</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#use-cases">Use Cases</a></li>
+                <li><a href="#security">Security</a></li>
+                <li><a href="#get-started">Get Started</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="badge-dot"></span>
+                    <span>Multi-Protocol Support: AP2 + ACP</span>
+                </div>
+                <h1>Enterprise Digital<br>Authorization Platform</h1>
+                <p class="hero-subtitle">
+                    Cryptographically secure API for managing payment mandates and delegated authorizations. 
+                    Built for banks, fintechs, and payment service providers.
+                </p>
+                <div class="hero-cta">
+                    <a href="#get-started" class="btn btn-primary btn-large">Get API Access</a>
+                    <a href="http://localhost:8000/docs" class="btn btn-secondary btn-large">View API Docs</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h3>700+</h3>
+                    <p>Tests Passing</p>
+                </div>
+                <div class="stat-item">
+                    <h3>92%</h3>
+                    <p>Code Coverage</p>
+                </div>
+                <div class="stat-item">
+                    <h3>2</h3>
+                    <p>Protocols Supported</p>
+                </div>
+                <div class="stat-item">
+                    <h3>99.9%</h3>
+                    <p>Uptime SLA</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Protocol Section -->
+    <section class="protocols">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Multi-Protocol Authorization</h2>
+                <p class="section-subtitle">
+                    Support both JWT-VC mandates and delegated token authorizations in a single unified API
+                </p>
+            </div>
+            <div class="protocol-grid">
+                <div class="protocol-card">
+                    <div class="protocol-icon">AP2</div>
+                    <h3>Account Provider Protocol 2</h3>
+                    <p>JWT-VC based mandates with cryptographic signatures for long-term authorizations</p>
+                    <ul class="protocol-features">
+                        <li>RSA/EC signature verification</li>
+                        <li>DID-based issuers</li>
+                        <li>Self-contained credentials</li>
+                        <li>Open Banking compliant</li>
+                        <li>Recurring payment mandates</li>
+                    </ul>
+                </div>
+                <div class="protocol-card">
+                    <div class="protocol-icon">ACP</div>
+                    <h3>Authorization Credential Protocol</h3>
+                    <p>Delegated token-based protocol with webhook lifecycle management for payments</p>
+                    <ul class="protocol-features">
+                        <li>PSP-issued delegations</li>
+                        <li>Real-time webhook events</li>
+                        <li>HMAC-signed delivery</li>
+                        <li>Transaction-specific auth</li>
+                        <li>Time-limited permissions</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Features Section -->
+    <section id="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">API Capabilities</h2>
+                <p class="section-subtitle">
+                    Enterprise-grade features for secure authorization management at scale
+                </p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔐</div>
+                    <h4>Cryptographic Verification</h4>
+                    <p>RSA-256/384/512 and ES-256/384/512 signature validation with automatic key rotation</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔔</div>
+                    <h4>Real-Time Webhooks</h4>
+                    <p>HMAC-signed event notifications for both AP2 and ACP with automatic retry logic</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🏢</div>
+                    <h4>Multi-Tenant Architecture</h4>
+                    <p>Complete tenant isolation with dedicated schemas and granular access control</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h4>Advanced Search</h4>
+                    <p>JSON path queries, pagination, sorting, and protocol-specific filters</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📦</div>
+                    <h4>Evidence Pack Export</h4>
+                    <p>Compliance-ready ZIP archives with audit trails, signatures, and metadata</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h4>Prometheus Metrics</h4>
+                    <p>20+ metric types with protocol-aware monitoring and Grafana dashboards</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h4>Auto-Scaling</h4>
+                    <p>Kubernetes HPA with 3-10 pod scaling based on CPU and request metrics</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h4>High Performance</h4>
+                    <p>PostgreSQL with connection pooling, async I/O, and optimized queries</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔑</div>
+                    <h4>Flexible Authentication</h4>
+                    <p>JWT tokens for users, API keys for M2M, with role-based access control</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Use Cases Section -->
+    <section id="use-cases" class="use-cases">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Use Cases</h2>
+                <p class="section-subtitle">
+                    Powering digital authorization workflows across financial services
+                </p>
+            </div>
+            <div class="use-case-grid">
+                <div class="use-case">
+                    <span class="use-case-icon">🏦</span>
+                    <h4>Open Banking</h4>
+                    <p>PSD2 and Open Banking UK compliant mandate management</p>
+                </div>
+                <div class="use-case">
+                    <span class="use-case-icon">💳</span>
+                    <h4>Payment Card Tokenization</h4>
+                    <p>Secure delegated payment authority with PSP integration</p>
+                </div>
+                <div class="use-case">
+                    <span class="use-case-icon">🔁</span>
+                    <h4>Recurring Payments</h4>
+                    <p>Subscription and scheduled payment authorization</p>
+                </div>
+                <div class="use-case">
+                    <span class="use-case-icon">🌐</span>
+                    <h4>Account-to-Account</h4>
+                    <p>Direct bank transfer authorization and verification</p>
+                </div>
+                <div class="use-case">
+                    <span class="use-case-icon">⏱️</span>
+                    <h4>Time-Limited Auth</h4>
+                    <p>Transaction-specific payment permissions with expiry</p>
+                </div>
+                <div class="use-case">
+                    <span class="use-case-icon">🛡️</span>
+                    <h4>Compliance & Audit</h4>
+                    <p>Complete audit trails for regulatory requirements</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security Section -->
+    <section id="security">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Enterprise Security</h2>
+                <p class="section-subtitle">
+                    Bank-grade security measures protecting your authorization data
+                </p>
+            </div>
+            <div class="security-grid">
+                <div class="security-item">
+                    <div class="security-icon">🔒</div>
+                    <h4>OWASP Top 10</h4>
+                    <p>Comprehensive protection against common vulnerabilities</p>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">🛡️</div>
+                    <h4>Rate Limiting</h4>
+                    <p>DDoS protection with configurable rate limits</p>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">🔐</div>
+                    <h4>HMAC Signatures</h4>
+                    <p>Cryptographically signed webhook delivery</p>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">🌐</div>
+                    <h4>IP Whitelisting</h4>
+                    <p>CIDR notation support for network security</p>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">🚨</div>
+                    <h4>Account Lockout</h4>
+                    <p>Brute force protection with auto-lockout</p>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">📝</div>
+                    <h4>Audit Logging</h4>
+                    <p>365-day retention of all activities</p>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">🔑</div>
+                    <h4>Password Policies</h4>
+                    <p>Complexity, history, and expiration rules</p>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">✅</div>
+                    <h4>PSP Allowlisting</h4>
+                    <p>Restrict ACP tokens to trusted providers</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Code Example Section -->
+    <section>
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Quick Integration</h2>
+                <p class="section-subtitle">
+                    Get started in minutes with our RESTful API
+                </p>
+            </div>
+            <div class="code-example">
+                <code>
+curl -X POST "https://api.mandatevault.com/v1/authorizations" \<br>
+  -H "Authorization: Bearer $TOKEN" \<br>
+  -H "Content-Type: application/json" \<br>
+  -d '{<br>
+    &nbsp;&nbsp;"protocol": "AP2",<br>
+    &nbsp;&nbsp;"tenant_id": "tenant-123",<br>
+    &nbsp;&nbsp;"payload": {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;"vc_jwt": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."<br>
+    &nbsp;&nbsp;}<br>
+  }'
+                </code>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="get-started" class="cta-section">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Ready to Get Started?</h2>
+                <p>Join leading financial institutions using Mandate Vault for secure authorization management</p>
+                <div class="cta-buttons">
+                    <a href="http://localhost:8000/docs" class="btn btn-primary btn-large">Explore API Documentation</a>
+                    <a href="mailto:support@mandatevault.com" class="btn btn-secondary btn-large">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-column">
+                    <div class="logo" style="margin-bottom: 1rem;">
+                        <div class="logo-icon">M</div>
+                        <span>Mandate Vault</span>
+                    </div>
+                    <p class="footer-about">
+                        Enterprise-grade multi-protocol API for managing and verifying digital authorizations with cryptographic security.
+                    </p>
+                </div>
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <ul class="footer-links">
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="http://localhost:8000/docs">API Documentation</a></li>
+                        <li><a href="#use-cases">Use Cases</a></li>
+                        <li><a href="#security">Security</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Developers</h4>
+                    <ul class="footer-links">
+                        <li><a href="/sdks/python/">Python SDK</a></li>
+                        <li><a href="/sdks/nodejs/">Node.js SDK</a></li>
+                        <li><a href="/examples/">Examples</a></li>
+                        <li><a href="/docs/guides/">Guides</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="/docs/ONBOARDING.md">Onboarding</a></li>
+                        <li><a href="mailto:support@mandatevault.com">Support</a></li>
+                        <li><a href="https://status.mandatevault.com">Status</a></li>
+                        <li><a href="https://github.com/mandate-vault">GitHub</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Mandate Vault. Built with ❤️ for secure digital mandate management. MIT License.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
+

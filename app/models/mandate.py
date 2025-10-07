@@ -1,5 +1,20 @@
 """
 Mandate database model.
+
+⚠️ DEPRECATED: This model is maintained for backward compatibility only.
+
+USE app.models.authorization.Authorization FOR NEW CODE.
+
+The Mandate model only supports AP2 (JWT-VC) protocol.
+The new Authorization model supports both AP2 and ACP protocols.
+
+Migration Path:
+- Use Authorization for all new mandate/authorization storage
+- Existing Mandate queries will continue to work via mandate_view
+- This model will be removed in v2.0
+
+TODO: Remove this model once all clients migrate to Authorization model.
+      Target: v2.0 (Q2 2026)
 """
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
@@ -11,9 +26,21 @@ import uuid
 
 
 class Mandate(Base):
-    """Mandate model for storing JWT-VC mandates."""
+    """
+    Mandate model for storing JWT-VC mandates.
     
-    __tablename__ = "mandates"
+    ⚠️ DEPRECATED: Use Authorization model instead.
+    
+    This model only supports AP2 (JWT-VC) protocol and is kept for
+    backward compatibility. New code should use the Authorization model
+    which supports multiple protocols (AP2, ACP).
+    
+    See: app.models.authorization.Authorization
+    
+    TODO: Remove in v2.0 (all clients should migrate to Authorization)
+    """
+    
+    __tablename__ = "mandates"  # DEPRECATED: Use 'authorizations' table
     
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
     vc_jwt = Column(Text, nullable=False)

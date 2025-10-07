@@ -10,7 +10,25 @@ Installation:
 Usage:
     from mandate_vault import MandateVaultClient
     
+    # Initialize client
     client = MandateVaultClient(api_key='mvk_your_key')
+    
+    # Multi-protocol authorizations (NEW - recommended)
+    auth = client.authorizations.create(
+        protocol='ACP',
+        payload={
+            'token_id': 'acp-123',
+            'psp_id': 'psp-stripe',
+            'merchant_id': 'merchant-456',
+            'max_amount': '5000.00',
+            'currency': 'USD',
+            'expires_at': '2026-01-01T00:00:00Z',
+            'constraints': {}
+        },
+        tenant_id='your-tenant-id'
+    )
+    
+    # Legacy mandates (DEPRECATED - AP2 only)
     mandate = client.mandates.create(vc_jwt='...', tenant_id='...')
 """
 

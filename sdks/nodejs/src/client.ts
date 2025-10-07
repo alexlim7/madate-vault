@@ -2,6 +2,7 @@
  * Main client for Mandate Vault API.
  */
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import { Authorizations } from './resources/authorizations';
 import { Mandates } from './resources/mandates';
 import { Webhooks } from './resources/webhooks';
 import { Audit } from './resources/audit';
@@ -16,7 +17,12 @@ export interface ClientConfig {
 export class MandateVaultClient {
   private http: AxiosInstance;
   
+  /** Multi-protocol authorization API (NEW - recommended) */
+  public readonly authorizations: Authorizations;
+  
+  /** Legacy mandate API (DEPRECATED - AP2 only) */
   public readonly mandates: Mandates;
+  
   public readonly webhooks: Webhooks;
   public readonly audit: Audit;
   
@@ -47,6 +53,7 @@ export class MandateVaultClient {
     );
     
     // Initialize resources
+    this.authorizations = new Authorizations(this.http);
     this.mandates = new Mandates(this.http);
     this.webhooks = new Webhooks(this.http);
     this.audit = new Audit(this.http);

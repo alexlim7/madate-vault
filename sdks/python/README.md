@@ -16,46 +16,110 @@ from mandate_vault import MandateVaultClient
 # Initialize client
 client = MandateVaultClient(api_key='mvk_your_api_key_here')
 
-# Create a mandate
-mandate = client.mandates.create(
-    vc_jwt='eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
+# Create an ACP authorization (NEW - multi-protocol)
+authorization = client.authorizations.create(
+    protocol='ACP',
+    payload={
+        'token_id': 'acp-token-123',
+        'psp_id': 'psp-stripe',
+        'merchant_id': 'merchant-456',
+        'max_amount': '5000.00',
+        'currency': 'USD',
+        'expires_at': '2026-01-01T00:00:00Z',
+        'constraints': {}
+    },
     tenant_id='your-tenant-id'
 )
 
-print(f"Mandate created: {mandate['id']}")
-print(f"Status: {mandate['verification_status']}")
+print(f"Authorization created: {authorization['id']}")
+print(f"Protocol: {authorization['protocol']}")
+print(f"Status: {authorization['status']}")
 ```
 
 ## Usage Examples
 
+### Create AP2 (JWT-VC) Authorization
+
+```python
+# Using new authorizations API (recommended)
+auth = client.authorizations.create(
+    protocol='AP2',
+    payload={'vc_jwt': 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...'},
+    tenant_id='your-tenant-id'
+)
+```
+
+### Search Authorizations
+
+```python
+# Advanced search with filters
+results = client.authorizations.search(
+    tenant_id='your-tenant-id',
+    protocol='ACP',  # Filter by protocol
+    status='VALID',
+    currency='USD',
+    min_amount='1000.00',
+    limit=50
+)
+
+print(f"Found {results['total']} authorizations")
+for auth in results['authorizations']:
+    print(f"{auth['id']}: {auth['protocol']} - {auth['issuer']}")
+```
+
+### Re-verify Authorization
+
+```python
+# Re-run verification on existing authorization
+result = client.authorizations.verify('auth-123')
+print(f"Verification status: {result['status']}")
+print(f"Reason: {result['reason']}")
+```
+
+### Export Evidence Pack
+
+```python
+# Download evidence pack as ZIP
+path = client.authorizations.export_evidence_pack(
+    authorization_id='auth-123',
+    output_path='./evidence_pack.zip'
+)
+print(f"Evidence pack saved to {path}")
+```
+
+### Revoke Authorization
+
+```python
+revoked = client.authorizations.revoke('auth-123')
+print(f"Revoked: {revoked['status']}")
+```
+
+---
+
+## Legacy Mandate API (Deprecated)
+
+⚠️ **The `/mandates` endpoints are deprecated. Use `client.authorizations` for new code.**
+
+### Create Mandate (AP2 only)
+
+```python
+# DEPRECATED - Use client.authorizations.create() instead
+mandate = client.mandates.create(
+    vc_jwt='eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
+    tenant_id='your-tenant-id'
+)
+```
+
 ### Search Mandates
 
 ```python
-# Search for mandates
+# DEPRECATED - Use client.authorizations.search() instead
 results = client.mandates.search(
     tenant_id='your-tenant-id',
     issuer_did='did:web:bank.example.com',
     status='active',
     limit=50
 )
-
-for mandate in results['mandates']:
-    print(f"{mandate['id']}: {mandate['subject_did']}")
-```
-
-### Get Mandate by ID
-
-```python
-mandate = client.mandates.get('mandate-123')
-print(f"Issuer: {mandate['issuer_did']}")
-print(f"Scope: {mandate['scope']}")
-```
-
-### Revoke Mandate
-
-```python
-revoked = client.mandates.revoke('mandate-123')
-print(f"Revoked at: {revoked['updated_at']}")
 ```
 
 ### Create Webhook

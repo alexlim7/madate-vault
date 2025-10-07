@@ -15,6 +15,22 @@ class Base(DeclarativeBase):
     pass
 
 
+# Import all models to ensure they're registered with Base.metadata
+# This must happen after Base is created but before create_all is called
+def _import_models():
+    """Import all models to register them with SQLAlchemy."""
+    try:
+        from app.models import (
+            Mandate, Authorization, Customer, AuditLog,
+            Webhook, WebhookDelivery, Alert, User, APIKey, ACPEvent
+        )
+    except ImportError:
+        pass  # Models may not be available during initial imports
+
+# Call immediately to ensure models are registered
+_import_models()
+
+
 def get_database_url() -> str:
     """Get database URL with fallback to SQLite for development."""
     if settings.database_url:

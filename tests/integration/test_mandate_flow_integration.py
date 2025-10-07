@@ -33,13 +33,30 @@ async def test_complete_mandate_creation_flow(test_client, auth_headers, test_cu
     
     # Step 2: Register issuer in truststore
     issuer_did = "did:example:integration-bank"
+    
+    # Generate proper JWK from the actual RSA key
+    import base64
+    
+    # Get the public key numbers
+    public_numbers = public_key.public_numbers()
+    n = public_numbers.n
+    e = public_numbers.e
+    
+    # Convert to base64url encoded strings
+    n_bytes = n.to_bytes((n.bit_length() + 7) // 8, byteorder='big')
+    e_bytes = e.to_bytes((e.bit_length() + 7) // 8, byteorder='big')
+    
+    # Use base64.urlsafe_b64encode and remove padding
+    n_b64 = base64.urlsafe_b64encode(n_bytes).decode('ascii').rstrip('=')
+    e_b64 = base64.urlsafe_b64encode(e_bytes).decode('ascii').rstrip('=')
+    
     jwk_set = {
         "keys": [{
             "kty": "RSA",
             "use": "sig",
             "kid": "integration-key-1",
-            "n": "test-modulus",  # Simplified for test
-            "e": "AQAB"
+            "n": n_b64,
+            "e": e_b64
         }]
     }
     
@@ -67,7 +84,7 @@ async def test_complete_mandate_creation_flow(test_client, auth_headers, test_cu
     
     # Step 4: Create mandate via API
     response = await test_client.post(
-        "/api/v1/mandates",
+        "/api/v1/mandates/",
         json={
             "vc_jwt": vc_jwt,
             "tenant_id": test_customer.tenant_id,
@@ -76,6 +93,9 @@ async def test_complete_mandate_creation_flow(test_client, auth_headers, test_cu
         headers=auth_headers
     )
     
+    if response.status_code != 201:
+        print(f"Response status: {response.status_code}")
+        print(f"Response content: {response.text}")
     assert response.status_code == 201
     mandate_data = response.json()
     
@@ -136,7 +156,7 @@ async def test_mandate_with_invalid_jwt(test_client, auth_headers, test_customer
     
     # Invalid JWT format
     response = await test_client.post(
-        "/api/v1/mandates",
+        "/api/v1/mandates/",
         json={
             "vc_jwt": "invalid.jwt.token",
             "tenant_id": test_customer.tenant_id
@@ -171,7 +191,7 @@ async def test_mandate_with_expired_token(test_client, auth_headers, test_custom
     expired_jwt = jwt.encode(payload, private_key, algorithm="RS256")
     
     response = await test_client.post(
-        "/api/v1/mandates",
+        "/api/v1/mandates/",
         json={
             "vc_jwt": expired_jwt,
             "tenant_id": test_customer.tenant_id
@@ -190,8 +210,9 @@ async def test_mandate_tenant_isolation(test_client, auth_headers, test_customer
     # Create another tenant
     from app.models.customer import Customer
     
+    import uuid
     other_tenant = Customer(
-        tenant_id="other-tenant-integration",
+        tenant_id=str(uuid.uuid4()),
         name="Other Corp",
         email="other@test.com",
         is_active=True
@@ -221,7 +242,7 @@ async def test_mandate_tenant_isolation(test_client, auth_headers, test_customer
     vc_jwt = jwt.encode(payload, private_key, algorithm="RS256")
     
     response = await test_client.post(
-        "/api/v1/mandates",
+        "/api/v1/mandates/",
         json={
             "vc_jwt": vc_jwt,
             "tenant_id": test_customer.tenant_id
@@ -274,7 +295,7 @@ async def test_concurrent_mandate_creation(test_client, auth_headers, test_custo
         vc_jwt = jwt.encode(payload, private_key, algorithm="RS256")
         
         response = await test_client.post(
-            "/api/v1/mandates",
+            "/api/v1/mandates/",
             json={
                 "vc_jwt": vc_jwt,
                 "tenant_id": test_customer.tenant_id

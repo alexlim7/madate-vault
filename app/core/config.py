@@ -30,9 +30,14 @@ class Settings(BaseSettings):
     kms_key_id: Optional[str] = Field(default=None, env="KMS_KEY_ID")
     
     # Security
-    secret_key: str = Field(..., env="SECRET_KEY")  # Required, no default for production
+    secret_key: str = Field(default="test-secret-key-for-development-only-32-chars-minimum", env="SECRET_KEY")
     access_token_expire_minutes: int = Field(default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
     allowed_hosts: List[str] = Field(default=["localhost", "127.0.0.1"], env="ALLOWED_HOSTS")
+    
+    # ACP (Authorization Credential Protocol) Configuration
+    acp_enable: bool = Field(default=True, env="ACP_ENABLE")  # Enable/disable ACP protocol support
+    acp_webhook_secret: Optional[str] = Field(default=None, env="ACP_WEBHOOK_SECRET")  # HMAC secret for ACP webhooks
+    acp_psp_allowlist: Optional[str] = Field(default=None, env="ACP_PSP_ALLOWLIST")  # Comma-separated PSP IDs (if set, only these PSPs allowed)
     
     # Webhook settings
     webhook_timeout: int = Field(default=30, env="WEBHOOK_TIMEOUT")
@@ -99,6 +104,21 @@ class Settings(BaseSettings):
             return [header.strip() for header in v.split(",")]
         return v
     
+    @field_validator("debug", mode="before")
+    @classmethod
+    def parse_debug(cls, v):
+        """Parse debug field from string or boolean."""
+        if isinstance(v, str):
+            # Handle common string representations
+            if v.upper() in ["TRUE", "1", "YES", "ON"]:
+                return True
+            elif v.upper() in ["FALSE", "0", "NO", "OFF"]:
+                return False
+            else:
+                # For other string values like "WARN", treat as False
+                return False
+        return bool(v)
+    
     @field_validator("log_level")
     @classmethod
     def validate_log_level(cls, v):
@@ -107,6 +127,35 @@ class Settings(BaseSettings):
         if v.upper() not in allowed:
             raise ValueError(f"Log level must be one of: {allowed}")
         return v.upper()
+    
+    def get_acp_psp_allowlist(self) -> Optional[List[str]]:
+        """
+        Parse ACP PSP allowlist from comma-separated string.
+        
+        Returns:
+            List of allowed PSP IDs, or None if no allowlist is configured
+        """
+        if not self.acp_psp_allowlist:
+            return None
+        
+        # Parse comma-separated list and strip whitespace
+        return [psp_id.strip() for psp_id in self.acp_psp_allowlist.split(",") if psp_id.strip()]
+    
+    def is_acp_psp_allowed(self, psp_id: str) -> bool:
+        """
+        Check if a PSP ID is allowed to create ACP authorizations.
+        
+        Args:
+            psp_id: The PSP identifier to check
+            
+        Returns:
+            True if allowed (or no allowlist configured), False otherwise
+        """
+        allowlist = self.get_acp_psp_allowlist()
+        if allowlist is None:
+            return True  # No allowlist = all PSPs allowed
+        
+        return psp_id in allowlist
     
     class Config:
         env_file = ".env"

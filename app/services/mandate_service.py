@@ -1,5 +1,22 @@
 """
 Mandate service for business logic.
+
+⚠️ DEPRECATED: This service is maintained for backward compatibility only.
+
+USE app.services.authorization_service.AuthorizationService FOR NEW CODE.
+
+This service now acts as a facade that writes to the multi-protocol
+`authorizations` table with protocol='AP2', but returns legacy Mandate objects
+to maintain API compatibility.
+
+Migration Path:
+- Legacy /mandates endpoints use this service internally
+- Data is stored in authorizations table with protocol='AP2'
+- mandate_view provides backward-compatible queries
+- New code should use AuthorizationService directly
+
+TODO: Remove this service once all clients migrate to /authorizations endpoint.
+      Target: v2.0 (Q2 2026)
 """
 from datetime import datetime
 from typing import Optional, List, Dict, Any
@@ -9,10 +26,12 @@ from sqlalchemy.orm import selectinload
 import uuid
 
 from app.models.mandate import Mandate
+from app.models.authorization import Authorization, ProtocolType
 from app.models.customer import Customer
 from app.schemas.mandate import MandateSearch, MandateUpdate
 from app.services.verification_service import verification_service, VerificationResult
 from app.services.audit_service import AuditService
+from app.services.authorization_service import AuthorizationService
 from app.services.webhook_service import WebhookService, WebhookEvent
 from app.services.alert_service import AlertService
 from app.core.monitoring import (
@@ -23,11 +42,21 @@ from app.core.monitoring import (
 
 
 class MandateService:
-    """Service class for mandate operations."""
+    """
+    Service class for mandate operations.
+    
+    ⚠️ DEPRECATED: This service maintains backward compatibility for legacy clients.
+    
+    Internally uses AuthorizationService to write to the authorizations table
+    with protocol='AP2', then converts results to Mandate objects for API compatibility.
+    
+    New integrations should use AuthorizationService directly.
+    """
     
     def __init__(self, db: AsyncSession):
         self.db = db
         self.audit_service = AuditService(db)
+        self.authorization_service = AuthorizationService(db)
         self.webhook_service = WebhookService(db)
         self.alert_service = AlertService(db)
     
@@ -36,6 +65,9 @@ class MandateService:
                                 user_agent: Optional[str] = None) -> Mandate:
         """
         Create a new mandate from JWT-VC token.
+        
+        ⚠️ DEPRECATED: This method now writes to authorizations table with protocol='AP2'
+        for backward compatibility. New code should use AuthorizationService directly.
 
         Args:
             vc_jwt: JWT-VC token string
@@ -46,7 +78,7 @@ class MandateService:
             user_agent: Optional user agent for audit logging
 
         Returns:
-            Created mandate object
+            Created mandate object (facade over Authorization)
 
         Raises:
             ValueError: If JWT verification fails or tenant doesn't exist
@@ -70,20 +102,6 @@ class MandateService:
         # Perform comprehensive verification
         verification_result = await verification_service.verify_mandate(vc_jwt)
         
-        # Log verification attempt to audit
-        await self.audit_service.log_event(
-            mandate_id=None,  # Not created yet
-            event_type="VERIFY",
-            details={
-                "verification_status": verification_result.status.value,
-                "verification_reason": verification_result.reason,
-                "verification_details": verification_result.details,
-                "user_id": user_id,
-                "ip_address": ip_address,
-                "user_agent": user_agent
-            }
-        )
-        
         # Check if verification passed
         if not verification_result.is_valid:
             raise ValueError(f"JWT verification failed: {verification_result.reason}")
@@ -91,27 +109,22 @@ class MandateService:
         # Extract data from verification result
         extracted_data = verification_result.details
         
-        # Create mandate object
-        mandate = Mandate(
+        # Create authorization using the new multi-protocol service
+        # This stores in authorizations table with protocol='AP2'
+        authorization = await self.authorization_service.create_ap2_authorization(
             vc_jwt=vc_jwt,
             issuer_did=extracted_data.get("issuer_did"),
             subject_did=extracted_data.get("subject_did"),
             scope=extracted_data.get("scope"),
             amount_limit=extracted_data.get("amount_limit"),
             expires_at=datetime.fromtimestamp(extracted_data["expires_at"]) if extracted_data.get("expires_at") else None,
-            status="active",
-            retention_days=retention_days,
             tenant_id=tenant_id,
             verification_status=verification_result.status.value,
             verification_reason=verification_result.reason,
             verification_details=verification_result.to_dict(),
-            verified_at=datetime.utcnow()
+            verified_at=datetime.utcnow(),
+            user_id=user_id
         )
-        
-        # Save to database
-        self.db.add(mandate)
-        await self.db.commit()
-        await self.db.refresh(mandate)
         
         # Record metrics
         mandates_created_total.labels(
@@ -119,22 +132,9 @@ class MandateService:
             verification_status=verification_result.status.value
         ).inc()
         
-        # Log audit event
-        await self.audit_service.log_event(
-            mandate_id=mandate.id,
-            event_type="CREATE",
-            details={
-                "issuer_did": mandate.issuer_did,
-                "subject_did": mandate.subject_did,
-                "scope": mandate.scope,
-                "amount_limit": mandate.amount_limit,
-                "verification_status": mandate.verification_status,
-                "verification_reason": mandate.verification_reason,
-                "user_id": user_id,
-                "ip_address": ip_address,
-                "user_agent": user_agent
-            }
-        )
+        # Convert Authorization to Mandate for backward compatibility
+        # This allows legacy API to return Mandate objects
+        mandate = self._authorization_to_mandate(authorization)
         
         # Send webhook event
         try:
@@ -377,3 +377,48 @@ class MandateService:
         
         await self.db.commit()
         return count
+    
+    def _authorization_to_mandate(self, authorization: Authorization) -> Mandate:
+        """
+        Convert Authorization to Mandate for backward compatibility.
+        
+        Creates a Mandate facade object from an Authorization.
+        This is a memory-only object that provides the legacy interface
+        while the actual data lives in the authorizations table.
+        
+        Args:
+            authorization: Authorization object (protocol must be AP2)
+            
+        Returns:
+            Mandate object (not persisted)
+        """
+        if authorization.protocol != ProtocolType.AP2:
+            raise ValueError("Can only convert AP2 authorizations to Mandate objects")
+        
+        # Create Mandate object from Authorization data
+        # Note: This is a facade - not saved to mandates table
+        mandate = Mandate(
+            id=authorization.id,
+            vc_jwt=authorization.raw_payload.get('vc_jwt', ''),
+            issuer_did=authorization.issuer,
+            subject_did=authorization.subject,
+            scope=authorization.scope.get('scope') if authorization.scope else None,
+            amount_limit=str(authorization.amount_limit) if authorization.amount_limit else None,
+            expires_at=authorization.expires_at,
+            status='active' if authorization.status == 'VALID' or authorization.status == 'ACTIVE' else 'expired',
+            tenant_id=authorization.tenant_id,
+            verification_status=authorization.verification_status,
+            verification_reason=authorization.verification_reason,
+            verification_details=authorization.verification_details,
+            verified_at=authorization.verified_at,
+            retention_days=authorization.retention_days or 90,
+            deleted_at=authorization.deleted_at,
+            created_at=authorization.created_at,
+            updated_at=authorization.updated_at
+        )
+        
+        # Mark that this object should not be persisted
+        # (it's just a view over authorization data)
+        mandate._sa_instance_state.detached = True
+        
+        return mandate

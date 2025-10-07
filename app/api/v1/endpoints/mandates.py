@@ -1,5 +1,19 @@
 """
 Mandate API endpoints.
+
+⚠️ DEPRECATED: These endpoints are maintained for backward compatibility only.
+
+USE /api/v1/authorizations ENDPOINTS FOR NEW INTEGRATIONS.
+
+The /mandates endpoints only support AP2 (JWT-VC) protocol.
+The /authorizations endpoints support both AP2 and ACP protocols.
+
+Migration Path:
+- POST /mandates → POST /authorizations with protocol='AP2'
+- GET /mandates/{id} → GET /authorizations/{id}
+- POST /mandates/search → POST /authorizations/search with protocol='AP2'
+
+These endpoints will be removed in v2.0 (Q2 2026).
 """
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status as http_status, Query
@@ -15,7 +29,7 @@ from app.services.audit_service import AuditService
 router = APIRouter()
 
 
-@router.post("/", response_model=MandateResponse, status_code=http_status.HTTP_201_CREATED)
+@router.post("/", response_model=MandateResponse, status_code=http_status.HTTP_201_CREATED, deprecated=True)
 @create_endpoint_rate_limit("mandates", "create")
 async def create_mandate(
     mandate_data: MandateCreate,
@@ -24,8 +38,38 @@ async def create_mandate(
     db: AsyncSession = Depends(get_db)
 ) -> MandateResponse:
     """
-    Ingest a JWT-VC mandate, verify basic structure, insert into Postgres, and log audit event.
-    Requires authentication and tenant access.
+    Ingest a JWT-VC mandate (AP2 protocol only).
+    
+    ⚠️ **DEPRECATED**: Use `POST /api/v1/authorizations` instead.
+    
+    **Migration:**
+    ```python
+    # Old (deprecated)
+    POST /api/v1/mandates
+    {
+        "vc_jwt": "eyJhbGc...",
+        "tenant_id": "tenant-123"
+    }
+    
+    # New (recommended)
+    POST /api/v1/authorizations
+    {
+        "protocol": "AP2",
+        "payload": {"vc_jwt": "eyJhbGc..."},
+        "tenant_id": "tenant-123"
+    }
+    ```
+    
+    **Limitations:**
+    - Only supports AP2 (JWT-VC) protocol
+    - Cannot handle ACP delegated tokens
+    - Will be removed in v2.0 (Q2 2026)
+    
+    **Use /authorizations for:**
+    - Multi-protocol support (AP2 + ACP)
+    - Advanced search capabilities
+    - Evidence pack export
+    - Unified audit trail
     """
     try:
         # Verify tenant access
