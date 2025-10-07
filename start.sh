@@ -9,6 +9,9 @@ echo "🚀 Starting Mandate Vault..."
 # Run database migrations
 echo "🔧 Running database migrations..."
 
+# Temporarily disable exit on error for database check
+set +e
+
 # Check if tables already exist
 python3 << 'CHECK_TABLES'
 import sys
@@ -47,9 +50,6 @@ except Exception as e:
 CHECK_TABLES
 
 DB_STATUS=$?
-
-# Temporarily disable exit on error for status check
-set +e
 
 if [ $DB_STATUS -eq 0 ]; then
     echo "✅ Database already migrated, skipping..."
