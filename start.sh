@@ -103,12 +103,49 @@ PYTHON_SCRIPT
 if [ $? -eq 0 ]; then
     echo "✅ Admin user already exists"
 else
-    echo "👤 Creating admin user..."
+    echo "👤 Creating admin user with direct SQL..."
     
-    # Run seed script with proper PYTHONPATH
-    (cd /app && PYTHONPATH=/app python scripts/seed_initial_data.py)
+    # Generate random password
+    ADMIN_PASSWORD=$(python3 -c "import secrets, string; chars = string.ascii_letters + string.digits + '!@#$%^&*'; print(''.join(secrets.choice(chars) for _ in range(16)))")
+    
+    # Create admin user directly with SQL
+    python3 << CREATEADMIN
+import os
+import sys
+from sqlalchemy import create_engine, text
+from passlib.context import CryptContext
+
+try:
+    # Get database URL
+    database_url = os.getenv('DATABASE_URL')
+    if database_url and database_url.startswith('postgresql+asyncpg://'):
+        database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://', 1)
+    
+    # Hash password
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    password_hash = pwd_context.hash("$ADMIN_PASSWORD")
+    
+    # Create admin user
+    engine = create_engine(database_url)
+    with engine.connect() as conn:
+        conn.execute(text("""
+            INSERT INTO users (email, username, password_hash, role, is_active, tenant_id, created_at, updated_at)
+            VALUES ('admin@example.com', 'admin', :password_hash, 'ADMIN', true, 'default', NOW(), NOW())
+        """), {"password_hash": password_hash})
+        conn.commit()
+    
+    print("✅ Admin user created successfully!")
+    print(f"Email: admin@example.com")
+    print(f"Password: $ADMIN_PASSWORD")
+    sys.exit(0)
+except Exception as e:
+    print(f"Error creating admin: {e}")
+    sys.exit(1)
+CREATEADMIN
+    
     if [ $? -eq 0 ]; then
         echo "✅ Admin user created!"
+        echo "📝 SAVE THIS PASSWORD: $ADMIN_PASSWORD"
     else
         echo "⚠️  Could not create admin user, but continuing..."
     fi
