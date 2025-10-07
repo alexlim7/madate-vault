@@ -80,6 +80,14 @@ class Settings(BaseSettings):
             raise ValueError(f"Environment must be one of: {allowed}")
         return v
     
+    @field_validator("allowed_hosts", mode="before")
+    @classmethod
+    def parse_allowed_hosts(cls, v):
+        """Parse allowed hosts from string or list."""
+        if isinstance(v, str):
+            return [host.strip() for host in v.split(",")]
+        return v
+    
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v):
