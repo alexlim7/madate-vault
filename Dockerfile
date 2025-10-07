@@ -38,5 +38,9 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:8000/healthz || exit 1
 
-# Run application with uvicorn
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Copy startup script
+COPY start.sh .
+RUN chmod +x start.sh
+
+# Run application with startup script (includes migrations)
+CMD ["./start.sh"]
