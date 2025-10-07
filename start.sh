@@ -48,17 +48,34 @@ CHECK_TABLES
 
 DB_STATUS=$?
 
+# Temporarily disable exit on error for status check
+set +e
+
 if [ $DB_STATUS -eq 0 ]; then
     echo "✅ Database already migrated, skipping..."
 elif [ $DB_STATUS -eq 2 ]; then
     # Tables exist but no version, stamp it
+    echo "🏷️  Stamping database with current migration version..."
     alembic stamp head
-    echo "✅ Database stamped with current version!"
+    if [ $? -eq 0 ]; then
+        echo "✅ Database stamped with current version!"
+    else
+        echo "❌ Failed to stamp database, trying upgrade..."
+        alembic upgrade head
+    fi
 else
     # Fresh database, run migrations
+    echo "📝 Running database migrations..."
     alembic upgrade head
-    echo "✅ Migrations complete!"
+    if [ $? -eq 0 ]; then
+        echo "✅ Migrations complete!"
+    else
+        echo "⚠️  Migration failed, but continuing..."
+    fi
 fi
+
+# Re-enable exit on error
+set -e
 
 # Check if admin user exists and create if needed
 echo "👤 Checking for admin user..."
