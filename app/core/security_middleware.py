@@ -126,6 +126,8 @@ def setup_security_middleware(app: FastAPI):
     if settings.environment == "production":
         allowed_hosts = [
             "mandatevault.com",
+            "www.mandatevault.com",
+            "api.mandatevault.com",
             "app.mandatevault.com",
             "admin.mandatevault.com",
             "mandate-vault.onrender.com",  # Render.com deployment
@@ -135,7 +137,10 @@ def setup_security_middleware(app: FastAPI):
         allowed_hosts = [
             "staging.mandatevault.com",
             "staging-app.mandatevault.com",
-            "mandate-vault.onrender.com"
+            "mandate-vault.onrender.com",
+            "api.mandatevault.com",  # Allow custom domain in staging too
+            "mandatevault.com",
+            "www.mandatevault.com"
         ]
     else:
         allowed_hosts = ["*"]  # Development
