@@ -1,0 +1,20 @@
+# Ignore everything except landing page
+*
+!landing.html
+!public/
+!vercel.json
+
+# Ignore Python files
+*.py
+pyproject.toml
+requirements.txt
+alembic/
+app/
+scripts/
+tests/
+venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+
